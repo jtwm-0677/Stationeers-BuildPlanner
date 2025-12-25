@@ -295,13 +295,85 @@ Source: `Assets\Scripts\Objects\PlacementSnap.cs`
 
 ---
 
-## TODO: Research Needed
+## Placement Rules & Slot System
 
-### Placement Rules & Slot System
-- [ ] How are slots/faces defined per structure?
-- [ ] What determines valid placement positions?
-- [ ] How do frames interact with other object types?
-- [ ] Source file: likely `Structure.cs` or related
+### Cell Storage Model
+Source: `Assets\Scripts\GridSystem\Cell.cs`
+
+Each grid cell contains:
+```csharp
+Dictionary<Grid3, Structure> Structural;  // One structure per grid position
+List<Structure> AllStructures;            // All coexisting structures
+```
+
+### Collision Types
+Source: `Assets\Scripts\Objects\CollisionType.cs`
+
+| Type | Value | Behavior |
+|------|-------|----------|
+| BlockGrid | 0 | Prevents ANY coexistence - exclusive cell ownership |
+| BlockFace | 1 | Only blocks at exact same position (face-mounted) |
+| BlockCustom | 2 | Allows coexistence (used by frames, stairs) |
+
+**Frames use `BlockCustom`** - they CAN coexist with pipes, cables, devices.
+
+### SmallCell Slots (for items mounted on frames)
+Source: `Assets\Scripts\GridSystem\SmallCell.cs`
+
+```csharp
+public Chute Chute;           // Atmospheric chutes
+public Pipe Pipe;             // Fluid pipes
+public Device Device;         // Devices
+public Cable Cable;           // Power cables
+public SmallGrid Other;       // Other small grid items
+public IRoboticArmRail Rail;  // Robotic arm rails
+```
+
+Each slot holds ONE item of that type per small cell position.
+
+### Frame Placement Properties
+
+| Property | Value | Meaning |
+|----------|-------|---------|
+| PlacementType | `PlacementSnap.Grid` | Snaps to 2m large grid |
+| CollisionType | `BlockCustom` | Allows coexistence |
+| AllowMounting | `true` | Pipes/cables/devices can mount on it |
+| AllowedRotations | `All` (default) | Wall, ceiling, floor valid |
+| Grid Spacing | 2.0f | Large grid cells |
+
+### Placement Validation Flow
+Source: `Assets\Scripts\Objects\Structure.cs` (lines 1167-1185)
+
+1. Get all grid cells the structure would occupy (`GridBounds`)
+2. For each cell, call `CanConstructCell()`
+3. Check existing structures' `CollisionType`:
+   - If any is `BlockGrid` → invalid
+   - If `BlockFace` and same position → invalid
+   - If `BlockCustom` → allowed
+4. Return valid if all cells pass
+
+### Frame Variant Differences
+Frame variants (corner, side, corner cut) use the **same Frame class** - differences are in prefab configuration:
+- Different mesh/model
+- Potentially different `GridBounds`
+- Same placement logic
+
+### Multi-Object Cell Example
+A single grid cell can contain:
+```
+Large Grid Layer:
+  └── Frame (BlockCustom, AllowMounting=true)
+
+Small Grid Layer (mounted on frame):
+  ├── Cable slot → one cable
+  ├── Pipe slot → one pipe
+  ├── Chute slot → one chute
+  └── Device slot → one device
+```
+
+---
+
+## TODO: Research Needed
 
 ### Pipe/Cable Connection Rules
 - [ ] How do pipes validate corner connections?
