@@ -222,6 +222,79 @@ Additional fonts may be available in `C:\Development\Stationeers Stuff\resources
 
 ---
 
+## Rotation/Orientation System
+
+### Storage Format
+Rotations stored as **Euler angles (X, Y, Z degrees)**, rounded to integers, converted to Quaternion for runtime use.
+
+Source: `Assets\Scripts\StructureSpawnData.cs`
+```csharp
+Rotation = new Vector3Reference(structure.Rotation.eulerAngles.Round(0))
+```
+
+### Rotation Increments
+**90-degree increments** for grid-aligned placement (sometimes 180-degree).
+
+Source: `Assets\Scripts\Util\SmartRotate.cs`
+```csharp
+Quaternion.Euler(90f, 0f, 0f)  // RotX
+Quaternion.Euler(0f, 90f, 0f)  // RotY
+Quaternion.Euler(0f, 0f, 90f)  // RotZ
+Quaternion.Euler(0f, 0f, 180f) // RotZZ
+```
+
+### Rotation Axis Enum
+Source: `Assets\Scripts\Objects\RotationAxis.cs`
+
+| Value | Name | Meaning |
+|-------|------|---------|
+| 0 | None | No rotation allowed |
+| 1 | X | X-axis only |
+| 2 | Y | Y-axis only |
+| 4 | Z | Z-axis only |
+| 3 | XY | X and Y axes |
+| 5 | ZX | Z and X axes |
+| 6 | ZY | Z and Y axes |
+| 7 | All | All axes |
+
+### Allowed Rotations Enum
+Source: `Assets\Scripts\Objects\AllowedRotations.cs`
+
+| Value | Name | Meaning |
+|-------|------|---------|
+| 0 | None | No placement allowed |
+| 1 | Wall | Wall-mounted |
+| 2 | Ceiling | Ceiling placement |
+| 4 | Floor | Floor placement |
+| 6 | Vertical | Ceiling + Floor |
+| 7 | All | Wall + Ceiling + Floor |
+
+### Placement Snap Types
+Source: `Assets\Scripts\Objects\PlacementSnap.cs`
+
+| Type | Description |
+|------|-------------|
+| Grid | Snap to grid - 90-degree increments |
+| Face | Snap to face - variable rotation |
+| FaceMount | Face-mounted placement |
+
+### Keybind Mapping
+| Keys | Axis | Increment |
+|------|------|-----------|
+| Ins / Del | X-axis | 90° |
+| Home / End | Y-axis | 90° |
+| PgUp / PgDn | Z-axis | 90° |
+| C | Cycle | Next valid orientation |
+
+### SmartRotate System
+`SmartRotate.cs` handles intelligent rotation cycling that:
+- Respects `PlacementSnap` type
+- Honors `RotationAxis` constraints
+- Validates against `AllowedRotations`
+- Maintains grid alignment and connection validity
+
+---
+
 ## TODO: Research Needed
 
 ### Placement Rules & Slot System
@@ -229,12 +302,6 @@ Additional fonts may be available in `C:\Development\Stationeers Stuff\resources
 - [ ] What determines valid placement positions?
 - [ ] How do frames interact with other object types?
 - [ ] Source file: likely `Structure.cs` or related
-
-### Rotation/Orientation System
-- [ ] How are rotations stored? (Quaternion, Euler, enum?)
-- [ ] What are valid rotation increments?
-- [ ] How does the C key "cycle" work?
-- [ ] Source file: `FrameOrientation.cs` only has Portrait/Landscape
 
 ### Pipe/Cable Connection Rules
 - [ ] How do pipes validate corner connections?
