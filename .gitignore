@@ -30,3 +30,10 @@ src-tauri/target/
 
 # Local settings
 .claude/
+
+# Project memory (local dev notes)
+CLAUDE.md
+docs/partnership-context.md
+docs/continuation-*.md
+.vite/
+nul
