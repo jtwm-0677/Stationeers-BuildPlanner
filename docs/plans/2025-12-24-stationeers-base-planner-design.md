@@ -263,7 +263,7 @@ Panel positions and collapsed state saved to localStorage.
 
 ## Save/Load System
 
-### Project File Format (.stplan)
+### Project File Format (.stbase)
 ```json
 {
   "version": "1.0",
@@ -292,9 +292,10 @@ Panel positions and collapsed state saved to localStorage.
 - Manual save updates current slot
 
 ### File Export/Import
-- Export downloads `.stplan` file
+- Export downloads `.stbase` file
 - Import via file picker with validation
 - Version compatibility warnings
+- MIME type: `application/x-stationeers-base`
 
 ### Blueprint Print Export
 Generate printable blueprint sheets with futuristic sci-fi aesthetic:
@@ -387,6 +388,80 @@ Generate printable blueprint sheets with futuristic sci-fi aesthetic:
 3. Minimap panel
 4. Keyboard shortcut customization
 5. Tauri wrapper for Windows 11
+
+---
+
+## Desktop App File Association (Tauri)
+
+When building the Windows desktop app with Tauri, register the `.stbase` file extension so Windows displays "Stationeers Base Plan" as the file type.
+
+**Tauri Configuration (`tauri.conf.json`):**
+```json
+{
+  "bundle": {
+    "fileAssociations": [{
+      "ext": ["stbase"],
+      "mimeType": "application/x-stationeers-base",
+      "description": "Stationeers Base Plan"
+    }]
+  }
+}
+```
+
+**Manual Windows Registry (for development/testing):**
+```reg
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\.stbase]
+@="StationeersBasePlan"
+
+[HKEY_CLASSES_ROOT\StationeersBasePlan]
+@="Stationeers Base Plan"
+
+[HKEY_CLASSES_ROOT\StationeersBasePlan\DefaultIcon]
+@="%SystemRoot%\\System32\\shell32.dll,1"
+```
+
+The Tauri installer will handle this automatically during installation.
+
+---
+
+## Future: In-Game Mod (BepInEx)
+
+After the web-based and Windows desktop applications are complete, explore porting the build planner as an in-game mod for Stationeers.
+
+### Mod Framework
+- **BepInEx** - Unity mod loader/injector framework
+- **StationeersLaunchpad** - Community mod launcher for Stationeers
+- Both support Stationeers modding
+
+### Potential Features
+- In-game overlay showing planned builds as ghost objects
+- Toggle between "plan mode" and normal gameplay
+- Import `.stbase` files directly into game
+- Real-time validation against actual game state
+- One-click placement of planned structures (if resources available)
+- Side-by-side comparison: plan vs actual build
+
+### Technical Considerations
+- Unity C# environment (different from web/Tauri TypeScript)
+- May need to rewrite core logic in C# or use a shared data format
+- Hook into game's placement system for validation
+- Render ghost objects using game's existing preview system
+- Access game's inventory for resource checking
+
+### Research Required
+- BepInEx plugin structure for Stationeers
+- Game's internal placement/preview APIs
+- How other Stationeers mods handle UI overlays
+- StationeersLaunchpad integration requirements
+
+### Development Order
+1. Complete web-based editor (current)
+2. Complete Windows desktop app (Tauri)
+3. Research BepInEx/Stationeers modding
+4. Prototype in-game ghost rendering
+5. Full mod implementation
 
 ---
 
