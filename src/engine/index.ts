@@ -40,3 +40,6 @@ export * from './connections';
 
 // Sprites
 export * from './sprites';
+
+// 3D Renderer (GLB to orthographic 2D)
+export * from './renderer';

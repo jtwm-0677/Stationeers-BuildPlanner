@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Toolbar, LeftPanel, RightPanel, Canvas, Modal } from './ui';
+  import { Toolbar, LeftPanel, RightPanel, Canvas, Modal, RendererTest } from './ui';
   import {
     Project,
     PlaceObjectCommand,
@@ -67,6 +67,9 @@
 
   // Sprite manager for rendering game sprites
   let spriteManager: SpriteManager | null = null;
+
+  // Test mode (F2 to toggle)
+  let showRendererTest = false;
 
   // Try to load last project on start
   function tryLoadLastProject() {
@@ -417,6 +420,11 @@
         }
         break;
 
+      // F2 - Toggle renderer test
+      case 'F2':
+        showRendererTest = !showRendererTest;
+        break;
+
       default:
         handled = false;
     }
@@ -444,54 +452,59 @@
   });
 </script>
 
-<main>
-  <Toolbar
-    floor={currentFloor}
-    canUndo={commands.canUndo}
-    canRedo={commands.canRedo}
-    {currentView}
-    on:floorUp={() => handleFloorChange(1)}
-    on:floorDown={() => handleFloorChange(-1)}
-    on:undo={handleUndo}
-    on:redo={handleRedo}
-    on:viewChange={(e) => currentView = e.detail}
-    on:newProject={handleNewProject}
-    on:openProject={handleOpenProject}
-    on:saveProject={handleSaveProject}
-    on:exportProject={handleExportFile}
-  />
-
-  <div class="workspace">
-    <LeftPanel
-      {selectedItemId}
-      {selectedVariantId}
-      on:itemSelect={handleItemSelect}
-    />
-    <Canvas
-      {objects}
-      {currentFloor}
+{#if showRendererTest}
+  <RendererTest />
+  <div class="test-hint">Press F2 to return to Build Planner</div>
+{:else}
+  <main>
+    <Toolbar
+      floor={currentFloor}
+      canUndo={commands.canUndo}
+      canRedo={commands.canRedo}
       {currentView}
-      {previewType}
-      previewVariant={selectedVariantId}
-      previewRotation={currentRotation}
-      previewColor={selectedColor}
-      {selectedGridType}
-      {spriteManager}
-      on:cellClick={handleCellClick}
-      on:cellRightClick={handleCellRightClick}
+      on:floorUp={() => handleFloorChange(1)}
+      on:floorDown={() => handleFloorChange(-1)}
+      on:undo={handleUndo}
+      on:redo={handleRedo}
+      on:viewChange={(e) => currentView = e.detail}
+      on:newProject={handleNewProject}
+      on:openProject={handleOpenProject}
+      on:saveProject={handleSaveProject}
+      on:exportProject={handleExportFile}
     />
-    <RightPanel
-      {currentFloor}
-      {currentRotation}
-      {selectedColor}
-      objectCount={objects.length}
-      on:rotateX={(e) => currentRotation = { ...currentRotation, x: normalizeAngle(currentRotation.x + e.detail) }}
-      on:rotateY={(e) => currentRotation = { ...currentRotation, y: normalizeAngle(currentRotation.y + e.detail) }}
-      on:rotateZ={(e) => currentRotation = { ...currentRotation, z: normalizeAngle(currentRotation.z + e.detail) }}
-      on:colorSelect={(e) => handleColorSelect(e.detail)}
-    />
-  </div>
-</main>
+
+    <div class="workspace">
+      <LeftPanel
+        {selectedItemId}
+        {selectedVariantId}
+        on:itemSelect={handleItemSelect}
+      />
+      <Canvas
+        {objects}
+        {currentFloor}
+        {currentView}
+        {previewType}
+        previewVariant={selectedVariantId}
+        previewRotation={currentRotation}
+        previewColor={selectedColor}
+        {selectedGridType}
+        {spriteManager}
+        on:cellClick={handleCellClick}
+        on:cellRightClick={handleCellRightClick}
+      />
+      <RightPanel
+        {currentFloor}
+        {currentRotation}
+        {selectedColor}
+        objectCount={objects.length}
+        on:rotateX={(e) => currentRotation = { ...currentRotation, x: normalizeAngle(currentRotation.x + e.detail) }}
+        on:rotateY={(e) => currentRotation = { ...currentRotation, y: normalizeAngle(currentRotation.y + e.detail) }}
+        on:rotateZ={(e) => currentRotation = { ...currentRotation, z: normalizeAngle(currentRotation.z + e.detail) }}
+        on:colorSelect={(e) => handleColorSelect(e.detail)}
+      />
+    </div>
+  </main>
+{/if}
 
 <!-- Save Project Modal -->
 <Modal title="Save Project" show={showSaveModal} on:close={() => showSaveModal = false}>
@@ -623,5 +636,16 @@
     display: flex;
     flex: 1;
     overflow: hidden;
+  }
+
+  .test-hint {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 15px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #888;
+    border-radius: 4px;
+    font-size: 12px;
   }
 </style>
