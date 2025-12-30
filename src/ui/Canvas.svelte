@@ -73,7 +73,7 @@
   // Grid/zoom settings
   // Base size: 1 small grid cell (0.5m = 5 units) = 32px at zoom 1
   const BASE_UNIT_SIZE = 32 / SMALL_GRID;  // pixels per 0.1m unit at zoom 1
-  const MIN_ZOOM = 0.5;
+  const MIN_ZOOM = 0.25;
   const MAX_ZOOM = 4;
   let zoom = 1;
 
@@ -543,13 +543,19 @@
           drawSize
         );
 
-        // Apply material tint with multiply blend mode
+        // Apply material tint with multiply blend mode (iron/steel base)
         ctx.globalCompositeOperation = 'multiply';
-        const tintColor = obj.color
-          ? getPaintColor(obj.color)
-          : (isIron ? MATERIAL_TINTS.iron : MATERIAL_TINTS.steel);
-        ctx.fillStyle = tintColor;
+        const baseTint = isIron ? MATERIAL_TINTS.iron : MATERIAL_TINTS.steel;
+        ctx.fillStyle = baseTint;
         ctx.fillRect(-drawSize / 2, -drawSize / 2, drawSize, drawSize);
+
+        // If paint color is set, add semi-transparent color overlay
+        if (obj.color) {
+          ctx.globalCompositeOperation = 'source-atop';
+          ctx.globalAlpha = 0.35;
+          ctx.fillStyle = getPaintColor(obj.color);
+          ctx.fillRect(-drawSize / 2, -drawSize / 2, drawSize, drawSize);
+        }
 
         ctx.restore();
         return;
