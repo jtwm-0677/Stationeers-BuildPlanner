@@ -5,6 +5,9 @@
     ObjectType,
     SteelFrameVariant,
     IronFrameVariant,
+    GasTankVariant,
+    LiquidTankVariant,
+    isLargeTank,
     WallFace,
     GridType,
     getGridTypeForObject,
@@ -505,6 +508,9 @@
       case ObjectType.Wall:
         drawWall(ctx, obj, x, y, padding, size, objCellSize);
         break;
+      case ObjectType.Tank:
+        drawTank(ctx, obj, x, y, padding, size, objCellSize);
+        break;
       default:
         // Fallback - gray square
         ctx.fillStyle = '#666666';
@@ -674,41 +680,176 @@
 
     if (faceVisibility === 'fill') {
       // Wall fills the cell (floor/ceiling in top view, or back wall in side view)
-      ctx.fillRect(x + padding, y + padding, size, size);
-      ctx.strokeRect(x + padding, y + padding, size, size);
+      if (isDoor) {
+        // Door: draw with gap in the middle
+        const gapSize = size * 0.35;
+        const sideSize = (size - gapSize) / 2;
+        // Left/top portion
+        ctx.fillRect(x + padding, y + padding, sideSize, size);
+        ctx.strokeRect(x + padding, y + padding, sideSize, size);
+        // Right/bottom portion
+        ctx.fillRect(x + padding + sideSize + gapSize, y + padding, sideSize, size);
+        ctx.strokeRect(x + padding + sideSize + gapSize, y + padding, sideSize, size);
+      } else {
+        ctx.fillRect(x + padding, y + padding, size, size);
+        ctx.strokeRect(x + padding, y + padding, size, size);
+      }
 
-      // Add a pattern for doors/windows
+      // Add a pattern for windows
       if (isWindow) {
         ctx.fillStyle = 'rgba(100, 180, 220, 0.3)';
         ctx.fillRect(x + padding + size * 0.2, y + padding + size * 0.2, size * 0.6, size * 0.6);
-      } else if (isDoor) {
-        ctx.strokeStyle = '#404050';
-        ctx.beginPath();
-        ctx.moveTo(x + objCellSize / 2, y + padding);
-        ctx.lineTo(x + objCellSize / 2, y + padding + size);
-        ctx.stroke();
-        ctx.strokeStyle = strokeColor;
       }
     } else if (faceVisibility === 'edge') {
       // Wall renders as line on edge of cell
       const edge = getWallEdgePosition(face, currentView);
+      const gapSize = objCellSize * 0.35; // Gap for doors
+      const sideLen = (objCellSize - gapSize) / 2;
 
-      switch (edge) {
-        case 'top':
-          ctx.fillRect(x, y, objCellSize, wallThickness);
-          break;
-        case 'bottom':
-          ctx.fillRect(x, y + objCellSize - wallThickness, objCellSize, wallThickness);
-          break;
-        case 'left':
-          ctx.fillRect(x, y, wallThickness, objCellSize);
-          break;
-        case 'right':
-          ctx.fillRect(x + objCellSize - wallThickness, y, wallThickness, objCellSize);
-          break;
+      if (isDoor) {
+        // Door: draw two segments with gap in middle
+        switch (edge) {
+          case 'top':
+            ctx.fillRect(x, y, sideLen, wallThickness);
+            ctx.fillRect(x + sideLen + gapSize, y, sideLen, wallThickness);
+            break;
+          case 'bottom':
+            ctx.fillRect(x, y + objCellSize - wallThickness, sideLen, wallThickness);
+            ctx.fillRect(x + sideLen + gapSize, y + objCellSize - wallThickness, sideLen, wallThickness);
+            break;
+          case 'left':
+            ctx.fillRect(x, y, wallThickness, sideLen);
+            ctx.fillRect(x, y + sideLen + gapSize, wallThickness, sideLen);
+            break;
+          case 'right':
+            ctx.fillRect(x + objCellSize - wallThickness, y, wallThickness, sideLen);
+            ctx.fillRect(x + objCellSize - wallThickness, y + sideLen + gapSize, wallThickness, sideLen);
+            break;
+        }
+      } else {
+        // Solid wall
+        switch (edge) {
+          case 'top':
+            ctx.fillRect(x, y, objCellSize, wallThickness);
+            break;
+          case 'bottom':
+            ctx.fillRect(x, y + objCellSize - wallThickness, objCellSize, wallThickness);
+            break;
+          case 'left':
+            ctx.fillRect(x, y, wallThickness, objCellSize);
+            break;
+          case 'right':
+            ctx.fillRect(x + objCellSize - wallThickness, y, wallThickness, objCellSize);
+            break;
+        }
       }
     }
     // If faceVisibility === 'hidden', don't render at all
+  }
+
+  /**
+   * Draw a tank (gas or liquid, small or large)
+   * Large tanks are 2x2 and positioned at center of footprint
+   * Has pipe stub on one side and data port on left of pipe stub
+   */
+  function drawTank(ctx: CanvasRenderingContext2D, obj: GameObject, x: number, y: number, padding: number, size: number, objCellSize: number) {
+    const isGas = obj.variant.includes('StructureTank') && !obj.variant.includes('Liquid');
+    const isLarge = isLargeTank(obj.variant);
+
+    // Tank colors
+    let fillColor: string;
+    let strokeColor: string;
+
+    if (isGas) {
+      fillColor = '#d08040'; // Orange/copper for gas
+      strokeColor = '#a06030';
+    } else {
+      fillColor = '#4090b0'; // Cyan/blue for liquid
+      strokeColor = '#306080';
+    }
+
+    // Apply paint color if set
+    if (obj.color) {
+      fillColor = getPaintColor(obj.color);
+      strokeColor = darkenColor(fillColor);
+    }
+
+    ctx.fillStyle = fillColor;
+    ctx.lineWidth = Math.max(2, 3 * zoom);
+
+    // Calculate actual render size - large tanks span 2x2 cells
+    const renderSize = isLarge ? objCellSize * 2 : objCellSize;
+    const renderX = isLarge ? x - objCellSize / 2 : x;
+    const renderY = isLarge ? y - objCellSize / 2 : y;
+    const renderPadding = padding;
+    const actualSize = renderSize - renderPadding * 2;
+
+    const centerX = renderX + renderSize / 2;
+    const centerY = renderY + renderSize / 2;
+
+    // Draw main tank body as rounded rectangle / oval
+    const tankRadius = actualSize * 0.15;
+    drawRoundedRect(ctx, renderX + renderPadding, renderY + renderPadding, actualSize, actualSize, tankRadius);
+    ctx.fill();
+
+    // Draw white outline for visibility
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(2, 3 * zoom);
+    ctx.stroke();
+
+    // Draw colored inner border
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = Math.max(1, 1.5 * zoom);
+    drawRoundedRect(ctx, renderX + renderPadding + 2, renderY + renderPadding + 2, actualSize - 4, actualSize - 4, tankRadius - 1);
+    ctx.stroke();
+
+    // Draw pipe stub on bottom (rotates with Y rotation)
+    const stubLength = actualSize * 0.15;
+    const stubWidth = actualSize * 0.12;
+    const rotationRad = (obj.rotation.y * Math.PI) / 180;
+
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate(rotationRad);
+
+    // Pipe stub (bottom side when rotation is 0)
+    ctx.fillStyle = '#606060';
+    ctx.strokeStyle = '#404040';
+    ctx.fillRect(-stubWidth / 2, actualSize / 2 - stubLength / 2, stubWidth, stubLength);
+    ctx.strokeRect(-stubWidth / 2, actualSize / 2 - stubLength / 2, stubWidth, stubLength);
+
+    // Data port (left side when rotation is 0, which is left of pipe stub)
+    const portSize = actualSize * 0.08;
+    ctx.fillStyle = '#808000';
+    ctx.strokeStyle = '#606000';
+    ctx.fillRect(-actualSize / 2 + portSize / 2, -portSize / 2, portSize, portSize);
+    ctx.strokeRect(-actualSize / 2 + portSize / 2, -portSize / 2, portSize, portSize);
+
+    ctx.restore();
+
+    // Add tank label (G or L)
+    ctx.fillStyle = strokeColor;
+    ctx.font = `bold ${Math.max(10, actualSize * 0.25)}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(isGas ? 'G' : 'L', centerX, centerY);
+  }
+
+  /**
+   * Draw a rounded rectangle
+   */
+  function drawRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
   }
 
   /**
@@ -1610,6 +1751,7 @@
       if (previewType === ObjectType.Pipe) ghostSlot = 'pipe';
       else if (previewType === ObjectType.Cable) ghostSlot = 'cable';
       else if (previewType === ObjectType.Chute) ghostSlot = 'chute';
+      else if (previewType === ObjectType.Tank) ghostSlot = 'device';
 
       // Draw ghost with transparency
       overlayCtx.save();
@@ -1625,7 +1767,8 @@
         color: previewColor as any,
         collisionType: 0,
         slot: ghostSlot as any,
-        face: previewType === ObjectType.Wall ? previewFace ?? undefined : undefined
+        face: previewType === ObjectType.Wall ? previewFace ?? undefined : undefined,
+        footprint: previewType === ObjectType.Tank && isLargeTank(previewVariant) ? { x: 2, z: 2 } : undefined
       };
 
       drawObject(overlayCtx, ghostObj, snappedX, snappedY, previewCellSize);

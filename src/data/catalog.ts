@@ -8,10 +8,12 @@ import {
   SteelWallVariant,
   IronWallVariant,
   WindowVariant,
-  DoorVariant
+  DoorVariant,
+  GasTankVariant,
+  LiquidTankVariant
 } from '../engine';
 
-export type ItemCategory = 'structural' | 'pipes' | 'cables' | 'devices' | 'logic';
+export type ItemCategory = 'structural' | 'pipes' | 'cables' | 'devices' | 'logic' | 'tanks';
 
 export interface ItemVariant {
   id: string;
@@ -449,6 +451,45 @@ export const catalog: CatalogCategory[] = [
             subcategory: 'chips',
             variants: [
               { id: 'CircuitboardLogic', name: 'Standard' }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'tanks',
+    name: 'Tanks',
+    icon: '⬢',
+    subcategories: [
+      {
+        id: 'gas-tanks',
+        name: 'Gas Tanks',
+        items: [
+          {
+            id: 'gas-tank',
+            name: 'Gas Tank',
+            category: 'tanks',
+            subcategory: 'gas-tanks',
+            variants: [
+              { id: GasTankVariant.Large, name: 'Large' },
+              { id: GasTankVariant.Small, name: 'Small' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'liquid-tanks',
+        name: 'Liquid Tanks',
+        items: [
+          {
+            id: 'liquid-tank',
+            name: 'Liquid Tank',
+            category: 'tanks',
+            subcategory: 'liquid-tanks',
+            variants: [
+              { id: LiquidTankVariant.Large, name: 'Large' },
+              { id: LiquidTankVariant.Small, name: 'Small' }
             ]
           }
         ]

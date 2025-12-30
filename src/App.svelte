@@ -19,6 +19,8 @@
     createCable,
     createHeavyCable,
     createSuperHeavyCable,
+    createGasTank,
+    createLiquidTank,
     grid3,
     SteelFrameVariant,
     IronFrameVariant,
@@ -35,6 +37,8 @@
     CableVariant,
     HeavyCableVariant,
     SuperHeavyCableVariant,
+    GasTankVariant,
+    LiquidTankVariant,
     PaintColor,
     ObjectType,
     GridType,
@@ -131,6 +135,9 @@
         return ObjectType.Cable;
       case 'chute':
         return ObjectType.Chute;
+      case 'gas-tank':
+      case 'liquid-tank':
+        return ObjectType.Tank;
       default:
         return null;
     }
@@ -275,6 +282,24 @@
           position,
           selectedVariantId as SuperHeavyCableVariant,
           currentRotation
+        );
+        break;
+
+      // Tanks
+      case 'gas-tank':
+        newObject = createGasTank(
+          position,
+          selectedVariantId as GasTankVariant,
+          currentRotation,
+          selectedColor
+        );
+        break;
+      case 'liquid-tank':
+        newObject = createLiquidTank(
+          position,
+          selectedVariantId as LiquidTankVariant,
+          currentRotation,
+          selectedColor
         );
         break;
 

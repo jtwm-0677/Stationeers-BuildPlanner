@@ -57,7 +57,8 @@ export enum ObjectType {
   Cable = 'cable',
   Pipe = 'pipe',
   Chute = 'chute',
-  Device = 'device'
+  Device = 'device',
+  Tank = 'tank'
 }
 
 /**
@@ -80,6 +81,7 @@ export function getGridTypeForObject(type: ObjectType): GridType {
     case ObjectType.Frame:
     case ObjectType.Wall:
     case ObjectType.Device:
+    case ObjectType.Tank:
     default:
       return GridType.Main;
   }
@@ -169,6 +171,22 @@ export enum SteelFrameVariant {
  */
 export enum IronFrameVariant {
   Standard = 'StructureFrameIron'
+}
+
+/**
+ * Gas Tank variants (verified prefab names)
+ */
+export enum GasTankVariant {
+  Large = 'StructureTankBig',
+  Small = 'StructureTankSmall'
+}
+
+/**
+ * Liquid Tank variants (verified prefab names)
+ */
+export enum LiquidTankVariant {
+  Large = 'StructureLiquidTankBig',
+  Small = 'StructureLiquidTankSmall'
 }
 
 /**
@@ -319,6 +337,14 @@ export enum PaintColor {
 }
 
 /**
+ * Footprint size for multi-cell objects (in grid cells)
+ */
+export interface Footprint {
+  x: number;  // Width in cells
+  z: number;  // Depth in cells
+}
+
+/**
  * Base game object interface
  */
 export interface GameObject {
@@ -332,6 +358,15 @@ export interface GameObject {
   slot: SlotType;
   /** For walls/doors: which face of the frame cell this attaches to */
   face?: WallFace;
+  /** For multi-cell objects: footprint size (default 1x1) */
+  footprint?: Footprint;
+}
+
+/**
+ * Check if a tank variant is a large (2x2) tank
+ */
+export function isLargeTank(variant: string): boolean {
+  return variant === GasTankVariant.Large || variant === LiquidTankVariant.Large;
 }
 
 /**

@@ -6,6 +6,7 @@ import type { Grid3 } from '../grid/types';
 import {
   type GameObject,
   type Rotation,
+  type Footprint,
   ObjectType,
   CollisionType,
   SlotType,
@@ -20,13 +21,16 @@ import {
   LiquidPipeVariant,
   InsulatedGasPipeVariant,
   InsulatedLiquidPipeVariant,
+  GasTankVariant,
+  LiquidTankVariant,
   ChuteVariant,
   CableVariant,
   HeavyCableVariant,
   SuperHeavyCableVariant,
   PaintColor,
   rotation,
-  generateId
+  generateId,
+  isLargeTank
 } from './types';
 
 /**
@@ -325,6 +329,52 @@ export function createSuperHeavyCable(
     color: null, // Cables cannot be painted
     collisionType: CollisionType.BlockCustom,
     slot: SlotType.Cable
+  };
+}
+
+/**
+ * Create a gas tank object
+ */
+export function createGasTank(
+  position: Grid3,
+  variant: GasTankVariant = GasTankVariant.Small,
+  rot: Rotation = rotation(),
+  color: PaintColor | null = null
+): GameObject {
+  const large = isLargeTank(variant);
+  return {
+    id: generateId(),
+    type: ObjectType.Tank,
+    variant,
+    position,
+    rotation: rot,
+    color,
+    collisionType: CollisionType.BlockCustom,
+    slot: SlotType.Device,
+    ...(large ? { footprint: { x: 2, z: 2 } } : {})
+  };
+}
+
+/**
+ * Create a liquid tank object
+ */
+export function createLiquidTank(
+  position: Grid3,
+  variant: LiquidTankVariant = LiquidTankVariant.Small,
+  rot: Rotation = rotation(),
+  color: PaintColor | null = null
+): GameObject {
+  const large = isLargeTank(variant);
+  return {
+    id: generateId(),
+    type: ObjectType.Tank,
+    variant,
+    position,
+    rotation: rot,
+    color,
+    collisionType: CollisionType.BlockCustom,
+    slot: SlotType.Device,
+    ...(large ? { footprint: { x: 2, z: 2 } } : {})
   };
 }
 
