@@ -369,7 +369,6 @@
     // Draw the floor below first if opacity > 0 (only for top-down view)
     if (belowFloorOpacity > 0 && currentView === 'top') {
       const belowFloor = currentFloor - 1; // One floor below (floor indices are 0, 1, 2...)
-      console.log(`Drawing below floor ${belowFloor} with opacity ${belowFloorOpacity}, found ${objects.filter(obj => obj.position.y === belowFloor).length} objects`);
 
       const belowObjects = objects.filter(obj => obj.position[proj.filterAxis] === belowFloor);
 
