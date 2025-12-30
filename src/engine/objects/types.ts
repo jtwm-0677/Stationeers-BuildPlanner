@@ -111,6 +111,50 @@ export enum SlotType {
 export const Pipe = 'pipe' as const;
 
 /**
+ * Wall/panel attachment faces
+ * Specifies which face of a frame cell the wall attaches to
+ */
+export enum WallFace {
+  Top = 'top',       // Ceiling panel
+  Bottom = 'bottom', // Floor panel
+  North = 'north',   // +Z face
+  South = 'south',   // -Z face
+  East = 'east',     // +X face
+  West = 'west'      // -X face
+}
+
+/**
+ * Steel Wall variants
+ */
+export enum SteelWallVariant {
+  Standard = 'StructureWall',
+  Padded = 'StructureWallPadded',
+  Geometric = 'StructureWallGeometric'
+}
+
+/**
+ * Iron Wall variants
+ */
+export enum IronWallVariant {
+  Standard = 'StructureWallIron'
+}
+
+/**
+ * Window variants
+ */
+export enum WindowVariant {
+  Standard = 'StructureWindow'
+}
+
+/**
+ * Door variants
+ */
+export enum DoorVariant {
+  Standard = 'StructureDoor',
+  Airlock = 'StructureAirlock'
+}
+
+/**
  * Frame variants (Steel)
  */
 export enum SteelFrameVariant {
@@ -286,6 +330,8 @@ export interface GameObject {
   color: PaintColor | null;
   collisionType: CollisionType;
   slot: SlotType;
+  /** For walls/doors: which face of the frame cell this attaches to */
+  face?: WallFace;
 }
 
 /**

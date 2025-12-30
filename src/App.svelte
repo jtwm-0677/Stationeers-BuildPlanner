@@ -7,6 +7,10 @@
     RemoveObjectCommand,
     createSteelFrame,
     createIronFrame,
+    createSteelWall,
+    createIronWall,
+    createWindow,
+    createDoor,
     createGasPipe,
     createLiquidPipe,
     createInsulatedGasPipe,
@@ -18,6 +22,11 @@
     grid3,
     SteelFrameVariant,
     IronFrameVariant,
+    SteelWallVariant,
+    IronWallVariant,
+    WindowVariant,
+    DoorVariant,
+    WallFace,
     GasPipeVariant,
     LiquidPipeVariant,
     InsulatedGasPipeVariant,
@@ -57,7 +66,19 @@
   let selectedVariantId: string = SteelFrameVariant.Standard;
   let currentRotation: Rotation = rotation();
   let selectedColor: PaintColor | null = null;
+  let selectedFace: WallFace = WallFace.North; // For walls - which face to attach to
   let objects: GameObject[] = [];
+  let belowFloorOpacity: number = 0; // Opacity for showing floor below current (0-1)
+
+  // Face order for cycling through wall faces
+  const FACE_ORDER: WallFace[] = [
+    WallFace.North,
+    WallFace.East,
+    WallFace.South,
+    WallFace.West,
+    WallFace.Top,
+    WallFace.Bottom
+  ];
 
   // Modal state
   let showSaveModal = false;
@@ -93,6 +114,12 @@
       case 'steel-frame':
       case 'iron-frame':
         return ObjectType.Frame;
+      case 'steel-wall':
+      case 'iron-wall':
+      case 'window':
+      case 'door':
+      case 'airlock':
+        return ObjectType.Wall;
       case 'pipe-gas':
       case 'pipe-liquid':
       case 'pipe-insulated-gas':
@@ -140,6 +167,45 @@
         newObject = createIronFrame(
           position,
           selectedVariantId as IronFrameVariant,
+          currentRotation,
+          selectedColor
+        );
+        break;
+
+      // Walls
+      case 'steel-wall':
+        newObject = createSteelWall(
+          position,
+          selectedFace,
+          selectedVariantId as SteelWallVariant,
+          currentRotation,
+          selectedColor
+        );
+        break;
+      case 'iron-wall':
+        newObject = createIronWall(
+          position,
+          selectedFace,
+          selectedVariantId as IronWallVariant,
+          currentRotation,
+          selectedColor
+        );
+        break;
+      case 'window':
+        newObject = createWindow(
+          position,
+          selectedFace,
+          selectedVariantId as WindowVariant,
+          currentRotation,
+          selectedColor
+        );
+        break;
+      case 'door':
+      case 'airlock':
+        newObject = createDoor(
+          position,
+          selectedFace,
+          selectedVariantId as DoorVariant,
           currentRotation,
           selectedColor
         );
@@ -425,6 +491,19 @@
         showRendererTest = !showRendererTest;
         break;
 
+      // C - Cycle wall face (for wall/door/window placement)
+      case 'c':
+      case 'C':
+        if (previewType === ObjectType.Wall) {
+          const currentIndex = FACE_ORDER.indexOf(selectedFace);
+          const direction = event.shiftKey ? -1 : 1;
+          const newIndex = (currentIndex + direction + FACE_ORDER.length) % FACE_ORDER.length;
+          selectedFace = FACE_ORDER[newIndex];
+        } else {
+          handled = false;
+        }
+        break;
+
       default:
         handled = false;
     }
@@ -487,8 +566,10 @@
         previewVariant={selectedVariantId}
         previewRotation={currentRotation}
         previewColor={selectedColor}
+        previewFace={selectedFace}
         {selectedGridType}
         {spriteManager}
+        {belowFloorOpacity}
         on:cellClick={handleCellClick}
         on:cellRightClick={handleCellRightClick}
       />
@@ -496,11 +577,14 @@
         {currentFloor}
         {currentRotation}
         {selectedColor}
+        {belowFloorOpacity}
+        selectedFace={previewType === ObjectType.Wall ? selectedFace : null}
         objectCount={objects.length}
         on:rotateX={(e) => currentRotation = { ...currentRotation, x: normalizeAngle(currentRotation.x + e.detail) }}
         on:rotateY={(e) => currentRotation = { ...currentRotation, y: normalizeAngle(currentRotation.y + e.detail) }}
         on:rotateZ={(e) => currentRotation = { ...currentRotation, z: normalizeAngle(currentRotation.z + e.detail) }}
         on:colorSelect={(e) => handleColorSelect(e.detail)}
+        on:belowFloorOpacityChange={(e) => belowFloorOpacity = e.detail}
       />
     </div>
   </main>

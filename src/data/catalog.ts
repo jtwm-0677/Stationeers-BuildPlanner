@@ -2,7 +2,14 @@
  * Item catalog - defines all placeable items in the game
  */
 
-import { SteelFrameVariant, IronFrameVariant } from '../engine';
+import {
+  SteelFrameVariant,
+  IronFrameVariant,
+  SteelWallVariant,
+  IronWallVariant,
+  WindowVariant,
+  DoorVariant
+} from '../engine';
 
 export type ItemCategory = 'structural' | 'pipes' | 'cables' | 'devices' | 'logic';
 
@@ -77,8 +84,9 @@ export const catalog: CatalogCategory[] = [
             category: 'structural',
             subcategory: 'walls',
             variants: [
-              { id: 'StructureWall', name: 'Standard' },
-              { id: 'StructureWallCorner', name: 'Corner' }
+              { id: SteelWallVariant.Standard, name: 'Standard' },
+              { id: SteelWallVariant.Padded, name: 'Padded' },
+              { id: SteelWallVariant.Geometric, name: 'Geometric' }
             ]
           },
           {
@@ -87,7 +95,7 @@ export const catalog: CatalogCategory[] = [
             category: 'structural',
             subcategory: 'walls',
             variants: [
-              { id: 'StructureWallIron', name: 'Standard' }
+              { id: IronWallVariant.Standard, name: 'Standard' }
             ]
           }
         ]
@@ -102,7 +110,7 @@ export const catalog: CatalogCategory[] = [
             category: 'structural',
             subcategory: 'windows',
             variants: [
-              { id: 'StructureWindow', name: 'Standard' }
+              { id: WindowVariant.Standard, name: 'Standard' }
             ]
           }
         ]
@@ -117,7 +125,7 @@ export const catalog: CatalogCategory[] = [
             category: 'structural',
             subcategory: 'doors',
             variants: [
-              { id: 'StructureDoor', name: 'Standard' }
+              { id: DoorVariant.Standard, name: 'Standard' }
             ]
           },
           {
@@ -126,7 +134,7 @@ export const catalog: CatalogCategory[] = [
             category: 'structural',
             subcategory: 'doors',
             variants: [
-              { id: 'StructureAirlock', name: 'Standard' }
+              { id: DoorVariant.Airlock, name: 'Standard' }
             ]
           }
         ]

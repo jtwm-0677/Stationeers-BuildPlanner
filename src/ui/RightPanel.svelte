@@ -6,12 +6,15 @@
     rotateY: number;
     rotateZ: number;
     colorSelect: string | null;
+    belowFloorOpacityChange: number;
   }>();
 
   export let currentFloor: number = 0;
   export let currentRotation: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
   export let objectCount: number = 0;
   export let selectedColor: string | null = null;
+  export let belowFloorOpacity: number = 0;
+  export let selectedFace: string | null = null;
 
   const colors = [
     { name: 'black', hex: '#333333' },
@@ -100,16 +103,41 @@
   </section>
 
   <section class="panel-section">
+    <h3 class="panel-heading">Floor View</h3>
+    <div class="floor-controls">
+      <div class="floor-row">
+        <span class="floor-label">Current Floor</span>
+        <span class="floor-value mono">{currentFloor}</span>
+      </div>
+      <div class="floor-row">
+        <span class="floor-label">Below Floor Opacity</span>
+        <span class="floor-value mono">{Math.round(belowFloorOpacity * 100)}%</span>
+      </div>
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.05"
+        value={belowFloorOpacity}
+        on:input={(e) => dispatch('belowFloorOpacityChange', parseFloat(e.currentTarget.value))}
+        class="opacity-slider"
+      />
+    </div>
+  </section>
+
+  <section class="panel-section">
     <h3 class="panel-heading">Info</h3>
     <div class="info-list">
       <div class="info-row">
         <span class="info-label">Objects</span>
         <span class="info-value mono">{objectCount}</span>
       </div>
-      <div class="info-row">
-        <span class="info-label">Floor</span>
-        <span class="info-value mono">{currentFloor}</span>
-      </div>
+      {#if selectedFace}
+        <div class="info-row">
+          <span class="info-label">Face (C)</span>
+          <span class="info-value">{selectedFace.charAt(0).toUpperCase() + selectedFace.slice(1)}</span>
+        </div>
+      {/if}
     </div>
   </section>
 </aside>
@@ -217,5 +245,50 @@
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  .floor-controls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .floor-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+  }
+
+  .floor-label {
+    color: var(--color-text-secondary);
+  }
+
+  .opacity-slider {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--color-bg-tertiary);
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .opacity-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--color-accent);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .opacity-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: var(--color-accent);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
   }
 </style>

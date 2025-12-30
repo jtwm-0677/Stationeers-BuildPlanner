@@ -34,14 +34,25 @@ export interface SpriteDefinition {
 
 /**
  * All frame sprite definitions
+ * Steel and Iron frames use the same base image with color tinting via multiply blend
  */
 export const FRAME_SPRITES: SpriteDefinition[] = [
-  { variant: 'StructureFrame', path: 'StructureFrame.png', category: SpriteCategory.Frame },
-  { variant: 'StructureFrameCorner', path: 'StructureFrameCorner.png', category: SpriteCategory.Frame },
-  { variant: 'StructureFrameCornerCut', path: 'StructureFrameCornerCut.png', category: SpriteCategory.Frame },
-  { variant: 'StructureFrameSide', path: 'StructureFrameSide.png', category: SpriteCategory.Frame },
-  { variant: 'StructureFrameIron', path: 'StructureFrameIron.png', category: SpriteCategory.Frame }
+  // Steel frames - all use SteelFrame.png base image
+  { variant: 'StructureFrame', path: 'SteelFrame.png', category: SpriteCategory.Frame },
+  { variant: 'StructureFrameCorner', path: 'SteelFrame.png', category: SpriteCategory.Frame },
+  { variant: 'StructureFrameCornerCut', path: 'SteelFrame.png', category: SpriteCategory.Frame },
+  { variant: 'StructureFrameSide', path: 'SteelFrame.png', category: SpriteCategory.Frame },
+  // Iron frames - use IronFrame.png base image
+  { variant: 'StructureFrameIron', path: 'IronFrame.png', category: SpriteCategory.Frame }
 ];
+
+/**
+ * Material tint colors for multiply blend mode
+ */
+export const MATERIAL_TINTS: Record<string, string> = {
+  steel: 'rgb(160, 180, 200)',   // Cool blue-gray for steel
+  iron: 'rgb(210, 180, 140)'     // Warm brown/orange for iron
+};
 
 /**
  * Gas pipe sprite definitions

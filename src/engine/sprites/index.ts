@@ -10,7 +10,8 @@ export {
   GAS_PIPE_SPRITES,
   LIQUID_PIPE_SPRITES,
   CABLE_SPRITES,
-  ALL_SPRITES
+  ALL_SPRITES,
+  MATERIAL_TINTS
 } from './types';
 
 export {

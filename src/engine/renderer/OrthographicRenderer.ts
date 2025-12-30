@@ -29,7 +29,7 @@ export interface RenderedViews {
 const DEFAULT_OPTIONS: Required<RenderOptions> = {
   size: 128,
   backgroundColor: null,
-  padding: 0.1
+  padding: 0.02  // Minimal padding - model fills most of frame
 };
 
 /**
@@ -172,13 +172,38 @@ export class OrthographicRenderer {
 
     // Calculate bounding box
     const box = new THREE.Box3().setFromObject(model);
-    const size = box.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
+    const boxSize = box.getSize(new THREE.Vector3());
+
+    // Get the relevant dimensions for this view (exclude the depth axis)
+    let viewWidth: number, viewHeight: number;
+    switch (view) {
+      case 'top':
+      case 'bottom':
+        viewWidth = boxSize.x;
+        viewHeight = boxSize.z;
+        break;
+      case 'front':
+      case 'back':
+        viewWidth = boxSize.x;
+        viewHeight = boxSize.y;
+        break;
+      case 'left':
+      case 'right':
+        viewWidth = boxSize.z;
+        viewHeight = boxSize.y;
+        break;
+    }
+
+    // Use the larger of width/height to ensure model fits
+    const maxViewDim = Math.max(viewWidth, viewHeight);
 
     // Configure camera for this view
     const config = CAMERA_CONFIGS[view];
-    const frustumSize = maxDim * (1 + opts.padding * 2);
+    const frustumSize = maxViewDim * (1 + opts.padding * 2);
     const aspect = 1; // Square output
+
+    // Calculate the depth dimension for camera positioning
+    const maxDim = Math.max(boxSize.x, boxSize.y, boxSize.z);
 
     this.camera.left = -frustumSize / 2;
     this.camera.right = frustumSize / 2;

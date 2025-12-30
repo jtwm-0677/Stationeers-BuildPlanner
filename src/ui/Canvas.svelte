@@ -5,11 +5,13 @@
     ObjectType,
     SteelFrameVariant,
     IronFrameVariant,
+    WallFace,
     GridType,
     getGridTypeForObject,
     MAIN_GRID,
     SMALL_GRID,
-    DEFAULT_GRID_SETTINGS
+    DEFAULT_GRID_SETTINGS,
+    MATERIAL_TINTS
   } from '../engine';
 
   const dispatch = createEventDispatcher<{
@@ -27,6 +29,7 @@
   export let previewVariant: string | null = null;
   export let previewRotation: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
   export let previewColor: string | null = null;
+  export let previewFace: WallFace | null = null; // For wall preview
 
   // Grid display settings
   export let gridSettings: GridDisplaySettings = DEFAULT_GRID_SETTINGS;
@@ -34,6 +37,9 @@
 
   // Sprite manager for rendering game sprites
   export let spriteManager: SpriteManager | null = null;
+
+  // Opacity for showing the floor below the current floor (0 = hidden, 1 = full)
+  export let belowFloorOpacity: number = 0;
 
   let containerEl: HTMLDivElement;
   let terrainCanvas: HTMLCanvasElement;
@@ -103,8 +109,13 @@
     scheduleRedraw();
   }
 
-  // Mark objects dirty when objects or view changes
-  $: if (objects || currentFloor || currentView) {
+  // Mark objects dirty when objects, view, or floor opacity changes
+  $: {
+    // Reference all values to track changes
+    objects;
+    currentFloor;
+    currentView;
+    belowFloorOpacity;
     objectsDirty = true;
     scheduleRedraw();
   }
@@ -117,7 +128,7 @@
   }
 
   // Mark overlay dirty when preview props change
-  $: if (previewType || previewVariant || previewRotation || previewColor) {
+  $: if (previewType || previewVariant || previewRotation || previewColor || previewFace) {
     overlayDirty = true;
     scheduleRedraw();
   }
@@ -355,6 +366,42 @@
     const ctx = objectCtx;
     const proj = getViewProjection();
 
+    // Draw the floor below first if opacity > 0 (only for top-down view)
+    if (belowFloorOpacity > 0 && currentView === 'top') {
+      const belowFloor = currentFloor - 1; // One floor below (floor indices are 0, 1, 2...)
+      console.log(`Drawing below floor ${belowFloor} with opacity ${belowFloorOpacity}, found ${objects.filter(obj => obj.position.y === belowFloor).length} objects`);
+
+      const belowObjects = objects.filter(obj => obj.position[proj.filterAxis] === belowFloor);
+
+      ctx.save();
+      ctx.globalAlpha = belowFloorOpacity;
+
+      for (const obj of belowObjects) {
+        let gridX = obj.position[proj.screenXAxis];
+        let gridY = obj.position[proj.screenYAxis];
+
+        if (proj.flipX) gridX = -gridX;
+        if (proj.flipY) gridY = -gridY;
+
+        const objGridType = getGridTypeForObject(obj.type);
+        const objCellSize = objGridType === GridType.Small ? smallCellSize : mainCellSize;
+
+        const baseX = originScreenX + (gridX * unitSize);
+        const baseY = originScreenY + (gridY * unitSize);
+        const screenX = objGridType === GridType.Small ? baseX - objCellSize / 2 : baseX;
+        const screenY = objGridType === GridType.Small ? baseY - objCellSize / 2 : baseY;
+
+        if (screenX < -objCellSize || screenX > width + objCellSize ||
+            screenY < -objCellSize || screenY > height + objCellSize) {
+          continue;
+        }
+
+        drawObject(ctx, obj, screenX, screenY, objCellSize);
+      }
+
+      ctx.restore();
+    }
+
     // Filter objects on current slice (floor/depth depending on view)
     const sliceObjects = objects.filter(obj => obj.position[proj.filterAxis] === currentFloor);
 
@@ -456,6 +503,9 @@
       case ObjectType.Chute:
         drawChute(ctx, obj, x, y, padding, size, objCellSize);
         break;
+      case ObjectType.Wall:
+        drawWall(ctx, obj, x, y, padding, size, objCellSize);
+        break;
       default:
         // Fallback - gray square
         ctx.fillStyle = '#666666';
@@ -464,11 +514,48 @@
   }
 
   function drawFrame(ctx: CanvasRenderingContext2D, obj: GameObject, x: number, y: number, padding: number, size: number, objCellSize: number) {
-    // Get color based on paint or default
+    const centerX = x + objCellSize / 2;
+    const centerY = y + objCellSize / 2;
+    const isIron = obj.variant.startsWith('StructureFrameIron');
+
+    // Try sprite-based rendering first
+    if (spriteManager) {
+      const sprite = spriteManager.getSprite(obj.variant);
+      if (sprite && sprite.loaded) {
+        ctx.save();
+
+        // Move to center for rotation
+        ctx.translate(centerX, centerY);
+        ctx.rotate((obj.rotation.y * Math.PI) / 180);
+
+        // Draw the sprite centered (0.98 = fine border around frame)
+        const drawSize = objCellSize * 0.98;
+        ctx.drawImage(
+          sprite.image,
+          -drawSize / 2,
+          -drawSize / 2,
+          drawSize,
+          drawSize
+        );
+
+        // Apply material tint with multiply blend mode
+        ctx.globalCompositeOperation = 'multiply';
+        const tintColor = obj.color
+          ? getPaintColor(obj.color)
+          : (isIron ? MATERIAL_TINTS.iron : MATERIAL_TINTS.steel);
+        ctx.fillStyle = tintColor;
+        ctx.fillRect(-drawSize / 2, -drawSize / 2, drawSize, drawSize);
+
+        ctx.restore();
+        return;
+      }
+    }
+
+    // Fallback to procedural rendering if no sprite available
     let fillColor = '#5a8a5a'; // Default green for steel frames
     let strokeColor = '#3a6a3a';
 
-    if (obj.variant.startsWith('StructureFrameIron')) {
+    if (isIron) {
       fillColor = '#8a7a5a';
       strokeColor = '#6a5a3a';
     }
@@ -483,8 +570,6 @@
     ctx.strokeStyle = strokeColor;
     ctx.lineWidth = Math.max(1, 2 * zoom);
 
-    const centerX = x + objCellSize / 2;
-    const centerY = y + objCellSize / 2;
     const halfSize = size / 2;
 
     // Draw based on variant
@@ -537,6 +622,190 @@
       ctx.fillRect(x + padding, y + padding, size, size);
       ctx.strokeRect(x + padding, y + padding, size, size);
     }
+  }
+
+  /**
+   * Draw a wall/panel based on current view and which face it's attached to
+   * - Top view: Top/Bottom faces as fills, N/S/E/W faces as edge lines
+   * - Side views: Show walls visible from that angle
+   */
+  function drawWall(ctx: CanvasRenderingContext2D, obj: GameObject, x: number, y: number, padding: number, size: number, objCellSize: number) {
+    const face = obj.face;
+    if (!face) return; // No face specified, can't render
+
+    // Determine wall color based on variant
+    const isIron = obj.variant.includes('Iron');
+    const isWindow = obj.variant.includes('Window');
+    const isDoor = obj.variant.includes('Door') || obj.variant.includes('Airlock');
+
+    let fillColor: string;
+    let strokeColor: string;
+
+    if (isWindow) {
+      fillColor = '#6090b0'; // Blue-ish for glass
+      strokeColor = '#4070a0';
+    } else if (isDoor) {
+      fillColor = '#707080'; // Gray for doors
+      strokeColor = '#505060';
+    } else if (isIron) {
+      fillColor = '#8a7a5a'; // Brown for iron
+      strokeColor = '#6a5a3a';
+    } else {
+      fillColor = '#707a80'; // Steel gray
+      strokeColor = '#505a60';
+    }
+
+    // Apply paint color if set
+    if (obj.color) {
+      fillColor = getPaintColor(obj.color);
+      strokeColor = darkenColor(fillColor);
+    }
+
+    ctx.fillStyle = fillColor;
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = Math.max(1, 2 * zoom);
+
+    const wallThickness = objCellSize * 0.12; // Thin line for wall edges
+
+    // Determine how to render based on current view and wall face
+    const proj = getViewProjection();
+
+    // Check if this wall face is visible/relevant for current view
+    const faceVisibility = getWallFaceVisibility(face, currentView);
+
+    if (faceVisibility === 'fill') {
+      // Wall fills the cell (floor/ceiling in top view, or back wall in side view)
+      ctx.fillRect(x + padding, y + padding, size, size);
+      ctx.strokeRect(x + padding, y + padding, size, size);
+
+      // Add a pattern for doors/windows
+      if (isWindow) {
+        ctx.fillStyle = 'rgba(100, 180, 220, 0.3)';
+        ctx.fillRect(x + padding + size * 0.2, y + padding + size * 0.2, size * 0.6, size * 0.6);
+      } else if (isDoor) {
+        ctx.strokeStyle = '#404050';
+        ctx.beginPath();
+        ctx.moveTo(x + objCellSize / 2, y + padding);
+        ctx.lineTo(x + objCellSize / 2, y + padding + size);
+        ctx.stroke();
+        ctx.strokeStyle = strokeColor;
+      }
+    } else if (faceVisibility === 'edge') {
+      // Wall renders as line on edge of cell
+      const edge = getWallEdgePosition(face, currentView);
+
+      switch (edge) {
+        case 'top':
+          ctx.fillRect(x, y, objCellSize, wallThickness);
+          break;
+        case 'bottom':
+          ctx.fillRect(x, y + objCellSize - wallThickness, objCellSize, wallThickness);
+          break;
+        case 'left':
+          ctx.fillRect(x, y, wallThickness, objCellSize);
+          break;
+        case 'right':
+          ctx.fillRect(x + objCellSize - wallThickness, y, wallThickness, objCellSize);
+          break;
+      }
+    }
+    // If faceVisibility === 'hidden', don't render at all
+  }
+
+  /**
+   * Determine how a wall face should be rendered in the current view
+   * Returns: 'fill' (full cell), 'edge' (line on edge), or 'hidden'
+   */
+  function getWallFaceVisibility(face: WallFace, view: ViewType): 'fill' | 'edge' | 'hidden' {
+    switch (view) {
+      case 'top':
+        // Looking down - Top/Bottom are fills, N/S/E/W are edges
+        if (face === WallFace.Top || face === WallFace.Bottom) return 'fill';
+        return 'edge';
+
+      case 'north':
+        // Looking from +Z towards -Z (south)
+        if (face === WallFace.South) return 'fill'; // Back wall visible
+        if (face === WallFace.North) return 'hidden'; // Front wall behind us
+        if (face === WallFace.Top || face === WallFace.Bottom) return 'edge';
+        if (face === WallFace.East || face === WallFace.West) return 'edge';
+        return 'hidden';
+
+      case 'south':
+        // Looking from -Z towards +Z (north)
+        if (face === WallFace.North) return 'fill';
+        if (face === WallFace.South) return 'hidden';
+        if (face === WallFace.Top || face === WallFace.Bottom) return 'edge';
+        if (face === WallFace.East || face === WallFace.West) return 'edge';
+        return 'hidden';
+
+      case 'east':
+        // Looking from +X towards -X (west)
+        if (face === WallFace.West) return 'fill';
+        if (face === WallFace.East) return 'hidden';
+        if (face === WallFace.Top || face === WallFace.Bottom) return 'edge';
+        if (face === WallFace.North || face === WallFace.South) return 'edge';
+        return 'hidden';
+
+      case 'west':
+        // Looking from -X towards +X (east)
+        if (face === WallFace.East) return 'fill';
+        if (face === WallFace.West) return 'hidden';
+        if (face === WallFace.Top || face === WallFace.Bottom) return 'edge';
+        if (face === WallFace.North || face === WallFace.South) return 'edge';
+        return 'hidden';
+
+      default:
+        return 'hidden';
+    }
+  }
+
+  /**
+   * Get which edge of the cell a wall should be drawn on
+   */
+  function getWallEdgePosition(face: WallFace, view: ViewType): 'top' | 'bottom' | 'left' | 'right' {
+    switch (view) {
+      case 'top':
+        // Top view: N=top, S=bottom, E=right, W=left
+        if (face === WallFace.North) return 'top';
+        if (face === WallFace.South) return 'bottom';
+        if (face === WallFace.East) return 'right';
+        if (face === WallFace.West) return 'left';
+        break;
+
+      case 'north':
+        // North view (looking south): E=left (flipped), W=right, Top=top, Bottom=bottom
+        if (face === WallFace.East) return 'left';
+        if (face === WallFace.West) return 'right';
+        if (face === WallFace.Top) return 'top';
+        if (face === WallFace.Bottom) return 'bottom';
+        break;
+
+      case 'south':
+        // South view (looking north): E=right, W=left, Top=top, Bottom=bottom
+        if (face === WallFace.East) return 'right';
+        if (face === WallFace.West) return 'left';
+        if (face === WallFace.Top) return 'top';
+        if (face === WallFace.Bottom) return 'bottom';
+        break;
+
+      case 'east':
+        // East view (looking west): N=right, S=left, Top=top, Bottom=bottom
+        if (face === WallFace.North) return 'right';
+        if (face === WallFace.South) return 'left';
+        if (face === WallFace.Top) return 'top';
+        if (face === WallFace.Bottom) return 'bottom';
+        break;
+
+      case 'west':
+        // West view (looking east): N=left, S=right, Top=top, Bottom=bottom
+        if (face === WallFace.North) return 'left';
+        if (face === WallFace.South) return 'right';
+        if (face === WallFace.Top) return 'top';
+        if (face === WallFace.Bottom) return 'bottom';
+        break;
+    }
+    return 'top'; // Default fallback
   }
 
   function drawPipe(ctx: CanvasRenderingContext2D, obj: GameObject, x: number, y: number, centerX: number, centerY: number, objCellSize: number) {
@@ -1356,7 +1625,8 @@
         rotation: previewRotation,
         color: previewColor as any,
         collisionType: 0,
-        slot: ghostSlot as any
+        slot: ghostSlot as any,
+        face: previewType === ObjectType.Wall ? previewFace ?? undefined : undefined
       };
 
       drawObject(overlayCtx, ghostObj, snappedX, snappedY, previewCellSize);

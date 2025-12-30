@@ -11,6 +11,11 @@ import {
   SlotType,
   SteelFrameVariant,
   IronFrameVariant,
+  SteelWallVariant,
+  IronWallVariant,
+  WindowVariant,
+  DoorVariant,
+  WallFace,
   GasPipeVariant,
   LiquidPipeVariant,
   InsulatedGasPipeVariant,
@@ -63,6 +68,98 @@ export function createIronFrame(
     color,
     collisionType: CollisionType.BlockCustom,
     slot: SlotType.Structural
+  };
+}
+
+/**
+ * Create a steel wall object
+ */
+export function createSteelWall(
+  position: Grid3,
+  face: WallFace,
+  variant: SteelWallVariant = SteelWallVariant.Standard,
+  rot: Rotation = rotation(),
+  color: PaintColor | null = null
+): GameObject {
+  return {
+    id: generateId(),
+    type: ObjectType.Wall,
+    variant,
+    position,
+    rotation: rot,
+    color,
+    collisionType: CollisionType.BlockFace,
+    slot: SlotType.Structural,
+    face
+  };
+}
+
+/**
+ * Create an iron wall object
+ */
+export function createIronWall(
+  position: Grid3,
+  face: WallFace,
+  variant: IronWallVariant = IronWallVariant.Standard,
+  rot: Rotation = rotation(),
+  color: PaintColor | null = null
+): GameObject {
+  return {
+    id: generateId(),
+    type: ObjectType.Wall,
+    variant,
+    position,
+    rotation: rot,
+    color,
+    collisionType: CollisionType.BlockFace,
+    slot: SlotType.Structural,
+    face
+  };
+}
+
+/**
+ * Create a window object
+ */
+export function createWindow(
+  position: Grid3,
+  face: WallFace,
+  variant: WindowVariant = WindowVariant.Standard,
+  rot: Rotation = rotation(),
+  color: PaintColor | null = null
+): GameObject {
+  return {
+    id: generateId(),
+    type: ObjectType.Wall,
+    variant,
+    position,
+    rotation: rot,
+    color,
+    collisionType: CollisionType.BlockFace,
+    slot: SlotType.Structural,
+    face
+  };
+}
+
+/**
+ * Create a door object
+ */
+export function createDoor(
+  position: Grid3,
+  face: WallFace,
+  variant: DoorVariant = DoorVariant.Standard,
+  rot: Rotation = rotation(),
+  color: PaintColor | null = null
+): GameObject {
+  return {
+    id: generateId(),
+    type: ObjectType.Wall,
+    variant,
+    position,
+    rotation: rot,
+    color,
+    collisionType: CollisionType.BlockFace,
+    slot: SlotType.Structural,
+    face
   };
 }
 
@@ -247,6 +344,12 @@ export function cloneObject(obj: GameObject): GameObject {
  * Check if two objects would conflict at the same position
  */
 export function objectsConflict(a: GameObject, b: GameObject): boolean {
+  // Walls can coexist if on different faces
+  if (a.type === ObjectType.Wall && b.type === ObjectType.Wall) {
+    // Only conflict if same face (or no face specified)
+    return a.face === b.face;
+  }
+
   // BlockCustom objects can coexist if in different slots
   if (a.collisionType === CollisionType.BlockCustom &&
       b.collisionType === CollisionType.BlockCustom) {
